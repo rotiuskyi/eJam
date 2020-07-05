@@ -1,8 +1,12 @@
-import 'App.css'
+import 'semantic-ui-css/semantic.min.css'
+import './App.css'
+import 'whatwg-fetch'
+
 import { render } from 'react-dom'
+import Deployments from 'components/Deployments'
 
 const App = () => {
-  return <h1>Hi, man!</h1>
+  return <Deployments />
 }
 
 render(<App />, document.getElementById('app'))

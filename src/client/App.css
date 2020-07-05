@@ -1,3 +1,7 @@
-:root {
-  --black: #1b1c1d;
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-width: 375px;
 }

@@ -25,6 +25,8 @@ Create .env file in the root directory using following template, fill user/passw
   API_HOST=localhost
   API_PORT=81
   API_PROXY_PATH=/api
+
+  CONNECTION_STRING=
 ```
 
 # Start server
