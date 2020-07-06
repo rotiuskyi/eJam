@@ -4,7 +4,8 @@
   "description": "ejam deployments client and server",
   "scripts": {
     "client": "webpack-dev-server --config src/client/webpack.config.js -r dotenv/config",
-    "server": "ts-node --project src/server/tsconfig.json -r tsconfig-paths/register -r dotenv/config src/server/main.ts"
+    "server": "ts-node --project src/server/tsconfig.json -r tsconfig-paths/register -r dotenv/config src/server/main.ts",
+    "start": "npm run server & npm run client"
   },
   "author": "Roman Otiuskyi",
   "license": "UNLICENSED",
