@@ -27,6 +27,16 @@ deployments.post(
   }
 )
 
+deployments.delete(
+  '/:deploymentId',
+  async (req: Request, res: Response, next: NextFunction) => {
+    const { deploymentId } = req.params
+
+    const result = await Deployment.findById(deploymentId).remove()
+    res.json({ result })
+  }
+)
+
 deployments.get(
   '/templates',
   async (req: Request, res: Response, next: NextFunction) => {

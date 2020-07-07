@@ -1,156 +1,217 @@
 import './Deployments.css'
 
 import { useCallback, FormEvent, useState, useEffect } from 'react'
-import { Container, Form, Table, Loader } from 'semantic-ui-react'
+import { useSelector } from 'react-redux'
 import {
-  getDeployments,
-  getDeploymentTemplates,
-  createDeployment as createNewDeployment,
-} from 'api/deployments'
-import { IDeploymentTemplate, IDeployment } from 'shared'
+  Container,
+  Form,
+  Table,
+  Loader,
+  Grid,
+  Icon,
+  Confirm,
+  Modal,
+  Dimmer,
+} from 'semantic-ui-react'
+import { RootState } from 'store'
+import {
+  useGetDeploymentsData,
+  useCreateDeployment,
+  useDeleteDeployment,
+} from 'store/deployments/deployments.dispatch-hooks'
+import { IDeploymentsState } from 'store/deployments/deployments.state'
+
+const NO_INDEX = -1
+
+enum FormFieldName {
+  URL = 'url',
+  TemplateName = 'templateName',
+  TemplateVersion = 'templateVersion',
+}
 
 export default () => {
-  // loaded templates and deployments data
-  const [deploymentTemplates, setDeploymentTemplates] = useState<
-    IDeploymentTemplate[]
-  >([])
-  const [deployments, setDeployments] = useState<IDeployment[]>([])
+  const {
+    deploymentTemplates,
+    deployments,
+    isLoading,
+    deploymentsIsChanging,
+  } = useSelector<RootState, IDeploymentsState>(
+    (state) => state.deploymentsState
+  )
+  const getDeploymentsData = useGetDeploymentsData()
+  const createDeployment = useCreateDeployment()
+  const deleteDeployment = useDeleteDeployment()
 
   // draft deployment data
   const [url, setUrl] = useState('')
   const [templateName, setTemplateName] = useState('')
   const [templateVersion, setTemplateVersion] = useState('')
 
-  // errors
-  const [reqErr, setReqErr] = useState<Error | null>(null)
-
-  // busy indicators
-  const [formIsBusy, setFormIsBusy] = useState(false)
-  const [tableIsBusy, setTableIsBusy] = useState(false)
-
-  useEffect(() => {
-    setTableIsBusy(true)
-
-    Promise.all([getDeploymentTemplates(), getDeployments()])
-      .then(([deploymentTemplates, deployments]) => {
-        setDeploymentTemplates(deploymentTemplates)
-        setDeployments(deployments)
-        setReqErr(null)
-      })
-      .catch((err) => {
-        setReqErr(err)
-      })
-      .then(() => {
-        setTableIsBusy(false)
-      })
-  }, [])
-
-  const handleNamedFieldChange = useCallback(
-    (e: React.SyntheticEvent, { name, value }) => {
-      switch (name) {
-        case 'url':
-          setUrl(value)
-          return
-        case 'templateName':
-          setTemplateName(value)
-          setTemplateVersion('')
-          return
-        case 'templateVersion':
-          setTemplateVersion(value)
-      }
-    },
-    []
+  // delete deployment confirm/modal
+  const [deploymentIndexToDelete, setDeploymentIndexToDelete] = useState(
+    NO_INDEX
   )
 
-  const createDeployment = useCallback(
-    async (e: FormEvent) => {
+  useEffect(() => {
+    getDeploymentsData()
+  }, [])
+
+  const namedFieldChangeHandler = useCallback((_, { name, value }) => {
+    switch (name) {
+      case FormFieldName.URL:
+        setUrl(value)
+        return
+      case FormFieldName.TemplateName:
+        setTemplateName(value)
+        setTemplateVersion('')
+        return
+      case FormFieldName.TemplateVersion:
+        setTemplateVersion(value)
+    }
+  }, [])
+
+  const resetForm = () => {
+    setUrl('')
+    setTemplateName('')
+    setTemplateVersion('')
+  }
+
+  const createDeploymentHandler = useCallback(
+    (e: FormEvent) => {
       e.preventDefault()
 
-      try {
-        setFormIsBusy(true)
-        const deployment = await createNewDeployment({
-          url,
-          templateName,
-          version: templateVersion,
-        })
-
-        setDeployments([...deployments, deployment])
-        setReqErr(null)
-      } catch (err) {
-        setReqErr(err)
-      } finally {
-        setFormIsBusy(false)
-      }
+      createDeployment({ url, templateName, version: templateVersion }).then(
+        resetForm
+      )
     },
     [url, templateName, templateVersion]
   )
+
+  const deleteDeploymentHandler = (index: number) => () => {
+    setDeploymentIndexToDelete(index)
+  }
+
+  const deleteDeploymentCloseHandler = useCallback(() => {
+    setDeploymentIndexToDelete(NO_INDEX)
+  }, [])
+
+  const deleteDeploymentConfirmHandler = useCallback(() => {
+    if (deploymentIndexToDelete !== NO_INDEX) {
+      deleteDeployment(deployments[deploymentIndexToDelete]._id).then(
+        deleteDeploymentCloseHandler
+      )
+    }
+  }, [deploymentIndexToDelete])
 
   const formIsFilled =
     url !== '' && templateName !== '' && templateVersion !== ''
 
   return (
-    <div className="deployments">
-      <Container>
-        <Form onSubmit={createDeployment} loading={formIsBusy}>
-          <Form.Input
-            label="URL"
-            name="url"
-            value={url}
-            onChange={handleNamedFieldChange}
-          />
-          <Form.Select
-            label="Deployment template"
-            name="templateName"
-            value={templateName}
-            onChange={handleNamedFieldChange}
-            options={deploymentTemplates.map((dt) => ({
-              text: dt.name,
-              value: dt.name,
-            }))}
-            selectOnBlur={false}
-          />
-          <Form.Select
-            label="Template version"
-            name="templateVersion"
-            value={templateVersion}
-            onChange={handleNamedFieldChange}
-            options={
-              deploymentTemplates
-                .find((dt) => dt.name === templateName)
-                ?.versions.map((version) => ({
-                  text: version,
-                  value: version,
-                })) || []
-            }
-            disabled={templateName === ''}
-          />
-          <Form.Button fluid color="instagram" disabled={!formIsFilled}>
-            Create deployment
-          </Form.Button>
-        </Form>
+    <Container className="deployments">
+      <Grid>
+        <Grid.Row>
+          <Grid.Column width="4">
+            <Form
+              onSubmit={createDeploymentHandler}
+              loading={deploymentsIsChanging}
+            >
+              <Form.Input
+                label="URL"
+                name={FormFieldName.URL}
+                value={url}
+                onChange={namedFieldChangeHandler}
+              />
+              <Form.Select
+                label="Deployment template"
+                name={FormFieldName.TemplateName}
+                value={templateName}
+                onChange={namedFieldChangeHandler}
+                options={deploymentTemplates.map((dt) => ({
+                  text: dt.name,
+                  value: dt.name,
+                }))}
+                selectOnBlur={false}
+              />
+              <Form.Select
+                label="Template version"
+                name={FormFieldName.TemplateVersion}
+                value={templateVersion}
+                onChange={namedFieldChangeHandler}
+                options={
+                  deploymentTemplates
+                    .find((dt) => dt.name === templateName)
+                    ?.versions.map((version) => ({
+                      text: version,
+                      value: version,
+                    })) || []
+                }
+                disabled={templateName === ''}
+              />
+              <Form.Button fluid color="instagram" disabled={!formIsFilled}>
+                Create deployment
+              </Form.Button>
+            </Form>
+          </Grid.Column>
 
-        {tableIsBusy && <Loader active />}
-        <Table>
-          <Table.Header>
-            <Table.Row>
-              <Table.HeaderCell>URL</Table.HeaderCell>
-              <Table.HeaderCell>Template name</Table.HeaderCell>
-              <Table.HeaderCell>Template version</Table.HeaderCell>
-              <Table.HeaderCell>Deployed at</Table.HeaderCell>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
-            {deployments.map((deployment) => (
-              <Table.Row key={deployment._id}>
-                <Table.Cell>{deployment.url}</Table.Cell>
-                <Table.Cell>{deployment.templateName}</Table.Cell>
-                <Table.Cell>{deployment.version}</Table.Cell>
-                <Table.Cell>{deployment.deployedAt.toDateString()}</Table.Cell>
-              </Table.Row>
-            ))}
-          </Table.Body>
-        </Table>
-      </Container>
-    </div>
+          {deploymentIndexToDelete !== NO_INDEX && (
+            <Confirm
+              open
+              closeIcon
+              size="mini"
+              content={
+                <Modal.Content>
+                  {deploymentsIsChanging && (
+                    <Dimmer active>
+                      <Loader active />
+                    </Dimmer>
+                  )}
+                  Delete deployment #{deploymentIndexToDelete}?
+                </Modal.Content>
+              }
+              confirmButton="Delete"
+              onCancel={deleteDeploymentCloseHandler}
+              onConfirm={deleteDeploymentConfirmHandler}
+            />
+          )}
+
+          <Grid.Column width="12">
+            <h5>Deployments list</h5>
+            {isLoading && <Loader active />}
+            <Table>
+              <Table.Header>
+                <Table.Row>
+                  <Table.HeaderCell>#</Table.HeaderCell>
+                  <Table.HeaderCell>URL</Table.HeaderCell>
+                  <Table.HeaderCell>Template name</Table.HeaderCell>
+                  <Table.HeaderCell>Template version</Table.HeaderCell>
+                  <Table.HeaderCell>Deployed at</Table.HeaderCell>
+                  <Table.HeaderCell>Actions</Table.HeaderCell>
+                </Table.Row>
+              </Table.Header>
+              <Table.Body>
+                {deployments.map((deployment, i) => (
+                  <Table.Row key={deployment._id}>
+                    <Table.Cell>{i}</Table.Cell>
+                    <Table.Cell>{deployment.url}</Table.Cell>
+                    <Table.Cell>{deployment.templateName}</Table.Cell>
+                    <Table.Cell>{deployment.version}</Table.Cell>
+                    <Table.Cell>
+                      {deployment.deployedAt.toDateString()}
+                    </Table.Cell>
+                    <Table.Cell>
+                      <Icon
+                        link
+                        name="trash"
+                        onClick={deleteDeploymentHandler(i)}
+                      />
+                    </Table.Cell>
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table>
+          </Grid.Column>
+        </Grid.Row>
+      </Grid>
+    </Container>
   )
 }
