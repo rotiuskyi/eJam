@@ -21,7 +21,7 @@ export enum ActionType {
 }
 
 export type Action =
-  // TODO add erros?
+  // TODO add error messages?
   | ActionWithPayload<ActionType.CreateDeploymentRequest, IDeploymentCreate>
   | ActionWithPayload<ActionType.CreateDeploymentSuccess, IDeployment>
   | ActionWithPayload<ActionType.CreateDeploymentFailure, null>

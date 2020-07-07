@@ -38,6 +38,8 @@ export default () => {
   } = useSelector<RootState, IDeploymentsState>(
     (state) => state.deploymentsState
   )
+
+  // TODO error handling
   const getDeploymentsData = useGetDeploymentsData()
   const createDeployment = useCreateDeployment()
   const deleteDeployment = useDeleteDeployment()

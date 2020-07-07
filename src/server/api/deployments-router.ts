@@ -3,6 +3,8 @@ import { Deployment } from 'models/Deployment'
 import { DeploymentTemplate } from 'models/DeploymentTemplate'
 import { IDeployment } from 'shared'
 
+// TODO use services instead mongoose models
+// request validation
 const deployments = Router()
 
 deployments.get(

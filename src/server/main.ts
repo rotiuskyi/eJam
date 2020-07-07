@@ -12,7 +12,7 @@ const {
   CONNECTION_STRING,
 } = process.env
 
-if (typeof CONNECTION_STRING === 'string') {
+if (CONNECTION_STRING !== undefined) {
   connect(CONNECTION_STRING, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
@@ -26,6 +26,7 @@ if (typeof CONNECTION_STRING === 'string') {
   })
 }
 
+// TODO error handling
 const app = express().use(bodyParser.json())
 
 deploymentsRouter(app)
