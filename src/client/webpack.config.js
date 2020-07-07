@@ -64,6 +64,7 @@ module.exports = () => ({
 
   devServer: {
     host: CLIENT_HOST,
+    disableHostCheck: true,
     port: CLIENT_PORT,
     historyApiFallback: true,
     open: true,
