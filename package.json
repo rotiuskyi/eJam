@@ -26,7 +26,7 @@
     "file-loader": "^5.0.2",
     "html-webpack-plugin": "^3.2.0",
     "mongoose": "^5.9.21",
-    "pm2": "^4.4.0",
+    "pm2": "^5.2.0",
     "react": "^16.8.6",
     "react-dom": "^16.8.6",
     "react-redux": "^7.2.0",
